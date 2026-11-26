@@ -104,7 +104,7 @@ window.__ModuleLoader__.load({
       "settings.attentionSound": "需要处理提示音",
       "settings.attentionSoundHint": "授权、提问、计划确认等需要你操作时播放。",
       "settings.notifyMode": "何时提醒",
-      "settings.notifyModeHint": "「仅在未聚焦时」是默认值：DSH 窗口在前台就不打扰你。",
+      "settings.notifyModeHint": "设置 DSH 在任务完成或需要你处理时，何时提醒你。",
       "settings.mode.never": "从不",
       "settings.mode.unfocused": "仅在未聚焦时",
       "settings.mode.always": "始终",
@@ -160,7 +160,7 @@ window.__ModuleLoader__.load({
       "settings.attentionSound": "Needs-you sound",
       "settings.attentionSoundHint": "Plays when an approval, question, or plan review needs you.",
       "settings.notifyMode": "When to notify",
-      "settings.notifyModeHint": "“Only when unfocused” is the default: stay quiet while the DSH window is in the foreground.",
+      "settings.notifyModeHint": "Choose when DSH should notify you about finished tasks or pending requests.",
       "settings.mode.never": "Never",
       "settings.mode.unfocused": "Only when unfocused",
       "settings.mode.always": "Always",
@@ -230,6 +230,7 @@ window.__ModuleLoader__.load({
 .dan-row{display:flex;align-items:center;justify-content:space-between;gap:16px}
 .dan-row-text{display:flex;flex-direction:column;gap:2px;min-width:0}
 .dan-row-label{font-size:14px;line-height:22px;color:var(--dsw-alias-label-primary)}
+.dan-row-label-strong{font-weight:600}
 .dan-row-hint{font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary)}
 .dan-control{display:flex;align-items:center;gap:8px;flex:0 0 auto}
 .dan-select{max-width:200px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);border-radius:6px;padding:4px 8px;font-size:13px}
@@ -954,14 +955,14 @@ window.__ModuleLoader__.load({
     }
 
     function SettingsGroupRow(props) {
-      const { label, hint, control } = props;
+      const { label, hint, control, strong } = props;
       return h(
         "div",
         { className: "dan-row" },
         h(
           "div",
           { className: "dan-row-text" },
-          h("div", { className: "dan-row-label" }, label),
+          h("div", { className: "dan-row-label" + (strong === true ? " dan-row-label-strong" : "") }, label),
           hint ? h("div", { className: "dan-row-hint" }, hint) : null,
         ),
         h("div", { className: "dan-control" }, control),
@@ -1045,6 +1046,12 @@ window.__ModuleLoader__.load({
           { className: "dan-settings-group" },
           h("div", { className: "dan-settings-subhead" }, t("settings.groupBehavior")),
           h(SettingsGroupRow, {
+            label: t("settings.notifyMode"),
+            hint: t("settings.notifyModeHint"),
+            control: notifyModeSelect(),
+            strong: true,
+          }),
+          h(SettingsGroupRow, {
             label: t("settings.soundOn"),
             hint: t("settings.soundOnHint"),
             control: checkbox("soundOn"),
@@ -1053,11 +1060,6 @@ window.__ModuleLoader__.load({
             label: t("settings.desktopOn"),
             hint: t("settings.desktopOnHint"),
             control: checkbox("desktopOn"),
-          }),
-          h(SettingsGroupRow, {
-            label: t("settings.notifyMode"),
-            hint: t("settings.notifyModeHint"),
-            control: notifyModeSelect(),
           }),
         ),
         h(

@@ -40,11 +40,11 @@ The plugin contributes one row to **Settings → General → 通知提醒**:
 
 | Setting | Default |
 | --- | --- |
+| 何时提醒 (when to notify) | 仅在未聚焦时 (only when unfocused) |
 | 提示音 (system sound on) | on |
 | 桌面右下角卡片 (desktop card stack) | on |
 | 任务完成音 (completion sound) | 无 (none) |
 | 需要处理提示音 (attention sound) | notify |
-| 何时提醒 (when to notify) | 仅在未聚焦时 (only when unfocused) |
 | 卡片配色 (card colors) | 背景 `#0D1117`，文字 `#FAB5EE`，次要文字 `#C79BC0`，完成 `#7EE787`，授权 `#FFA657`，回答 `#FAB5EE` |
 
 The **card colors** section has a color picker per role (background, text, secondary text,
