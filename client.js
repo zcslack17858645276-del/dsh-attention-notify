@@ -82,9 +82,9 @@ window.__ModuleLoader__.load({
     // always 连前台也提醒（前台用应用内卡片，桌面卡片仍然只在未聚焦时出现）。
     const NOTIFY_MODES = ["never", "unfocused", "always"];
     const NOTIFY_MODE_LABELS = {
-      never: "mode.never",
-      unfocused: "mode.unfocused",
-      always: "mode.always",
+      never: "settings.mode.never",
+      unfocused: "settings.mode.unfocused",
+      always: "settings.mode.always",
     };
 
     const zh = {
