@@ -80,6 +80,10 @@ window.__ModuleLoader__.load({
 
     const zh = {
       "settings.title": "通知提醒",
+      "settings.pluginTag": "跨工作区提醒插件",
+      "settings.groupBehavior": "提醒方式",
+      "settings.groupSounds": "提示音",
+      "settings.groupColors": "卡片配色",
       "settings.description":
         "会话完成或需要你处理（授权、回答、确认计划）时，用 Windows 系统提示音和桌面右下角卡片提醒你，同时开着多个工作区、DSH 不在前台也不会错过。",
       "settings.soundOn": "系统提示音",
@@ -128,6 +132,10 @@ window.__ModuleLoader__.load({
 
     const en = {
       "settings.title": "Attention notifications",
+      "settings.pluginTag": "cross-workspace alerts",
+      "settings.groupBehavior": "How to notify",
+      "settings.groupSounds": "Sounds",
+      "settings.groupColors": "Card colors",
       "settings.description":
         "A real Windows system sound plus a card at the bottom-right corner of the desktop when a session finishes or needs you (approval, answer, plan review), so background workspaces are never missed even when DSH is not focused.",
       "settings.soundOn": "System sounds",
@@ -195,11 +203,15 @@ window.__ModuleLoader__.load({
 .dan-btn:hover{background:var(--dan-hover,rgba(250,181,238,.12))}
 .dan-btn-primary{border-color:transparent;background:var(--dan-text,#FAB5EE);color:var(--dan-bg,#0D1117)}
 .dan-btn-primary:hover{background:var(--dan-text,#FAB5EE);opacity:.9}
-.dan-settings{display:flex;flex-direction:column;gap:12px;padding:16px 0}
-.dan-settings-head{display:flex;flex-direction:column;gap:4px}
+.dan-settings{display:flex;flex-direction:column;gap:14px;padding:16px 18px;margin:4px 0;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-1)}
+.dan-settings-head{display:flex;flex-direction:column;gap:6px}
+.dan-title-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .dan-settings-title{font-size:14px;line-height:22px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.dan-plugin-tag{font-size:11px;line-height:18px;padding:0 7px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary);white-space:nowrap}
 .dan-settings-desc{font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary)}
-.dan-settings-subhead{font-size:13px;line-height:20px;font-weight:600;color:var(--dsw-alias-label-primary);margin-top:4px}
+.dan-settings-group{display:flex;flex-direction:column;gap:10px}
+.dan-settings-group+.dan-settings-group{border-top:1px solid var(--dsw-alias-border-l1);padding-top:12px}
+.dan-settings-subhead{font-size:12px;line-height:18px;font-weight:600;color:var(--dsw-alias-label-secondary)}
 .dan-row{display:flex;align-items:center;justify-content:space-between;gap:16px}
 .dan-row-text{display:flex;flex-direction:column;gap:2px;min-width:0}
 .dan-row-label{font-size:14px;line-height:22px;color:var(--dsw-alias-label-primary)}
@@ -986,51 +998,74 @@ window.__ModuleLoader__.load({
         h(
           "div",
           { className: "dan-settings-head" },
-          h("div", { className: "dan-settings-title" }, t("settings.title")),
+          h(
+            "div",
+            { className: "dan-title-line" },
+            h("span", { className: "dan-settings-title" }, t("settings.title")),
+            h("span", { className: "dan-plugin-tag" }, t("settings.pluginTag")),
+          ),
           h("div", { className: "dan-settings-desc" }, t("settings.description")),
         ),
-        h(SettingsGroupRow, { label: t("settings.soundOn"), hint: t("settings.soundOnHint"), control: checkbox("soundOn") }),
-        h(SettingsGroupRow, {
-          label: t("settings.desktopOn"),
-          hint: t("settings.desktopOnHint"),
-          control: checkbox("desktopOn"),
-        }),
-        h(SettingsGroupRow, {
-          label: t("settings.onlyWhenUnfocused"),
-          hint: t("settings.onlyWhenUnfocusedHint"),
-          control: checkbox("onlyWhenUnfocused"),
-        }),
-        h(SettingsGroupRow, {
-          label: t("settings.completeSound"),
-          hint: t("settings.completeSoundHint"),
-          control: select("completeSoundKey"),
-        }),
-        h(SettingsGroupRow, {
-          label: t("settings.attentionSound"),
-          hint: t("settings.attentionSoundHint"),
-          control: select("attentionSoundKey"),
-        }),
         h(
           "div",
-          { className: "dan-test" },
-          h("button", { type: "button", className: "dan-btn", onClick: () => preview("complete") }, t("settings.testComplete")),
-          h("button", { type: "button", className: "dan-btn", onClick: () => preview("attention") }, t("settings.testAttention")),
-        ),
-        h("div", { className: "dan-settings-subhead" }, t("settings.colors")),
-        COLOR_KEYS.map((key) =>
-          h(SettingsGroupRow, { key, label: t("settings.color." + key), control: colorControl(key) }),
+          { className: "dan-settings-group" },
+          h("div", { className: "dan-settings-subhead" }, t("settings.groupBehavior")),
+          h(SettingsGroupRow, {
+            label: t("settings.soundOn"),
+            hint: t("settings.soundOnHint"),
+            control: checkbox("soundOn"),
+          }),
+          h(SettingsGroupRow, {
+            label: t("settings.desktopOn"),
+            hint: t("settings.desktopOnHint"),
+            control: checkbox("desktopOn"),
+          }),
+          h(SettingsGroupRow, {
+            label: t("settings.onlyWhenUnfocused"),
+            hint: t("settings.onlyWhenUnfocusedHint"),
+            control: checkbox("onlyWhenUnfocused"),
+          }),
         ),
         h(
           "div",
-          { className: "dan-test" },
+          { className: "dan-settings-group" },
+          h("div", { className: "dan-settings-subhead" }, t("settings.groupSounds")),
+          h(SettingsGroupRow, {
+            label: t("settings.completeSound"),
+            hint: t("settings.completeSoundHint"),
+            control: select("completeSoundKey"),
+          }),
+          h(SettingsGroupRow, {
+            label: t("settings.attentionSound"),
+            hint: t("settings.attentionSoundHint"),
+            control: select("attentionSoundKey"),
+          }),
           h(
-            "button",
-            {
-              type: "button",
-              className: "dan-btn",
-              onClick: () => update({ colors: { ...DEFAULT_COLORS } }),
-            },
-            t("settings.colorsReset"),
+            "div",
+            { className: "dan-test" },
+            h("button", { type: "button", className: "dan-btn", onClick: () => preview("complete") }, t("settings.testComplete")),
+            h("button", { type: "button", className: "dan-btn", onClick: () => preview("attention") }, t("settings.testAttention")),
+          ),
+        ),
+        h(
+          "div",
+          { className: "dan-settings-group" },
+          h("div", { className: "dan-settings-subhead" }, t("settings.groupColors")),
+          COLOR_KEYS.map((key) =>
+            h(SettingsGroupRow, { key, label: t("settings.color." + key), control: colorControl(key) }),
+          ),
+          h(
+            "div",
+            { className: "dan-test" },
+            h(
+              "button",
+              {
+                type: "button",
+                className: "dan-btn",
+                onClick: () => update({ colors: { ...DEFAULT_COLORS } }),
+              },
+              t("settings.colorsReset"),
+            ),
           ),
         ),
       );

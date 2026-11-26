@@ -1,6 +1,6 @@
 {
   "name": "@local/dsh-attention-notify",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "description": "Global attention notifications for DeepSeek Harness: sound + floating cards when a session finishes or needs your approval/answer, across every workspace.",
