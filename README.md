@@ -8,25 +8,20 @@ never missed.
 ## Behavior
 
 - The browser half watches `ctx.uiSession.sessionStatus` (all sessions, all workspaces):
-  - `running: true → false` → "task complete" notice. Subagent sessions are skipped.
+  - `running: true → false` → "task complete" notice. Not raised for the session you are
+    currently looking at with the app focused, nor for subagent sessions.
   - a new `pendingInteraction` → "approval / question / plan review" notice. The notice is
     removed when that interaction settles. Subagent interactions are included, because
     missing an approval is worse than a little extra noise.
-- **How to notify** (`何时提醒` / when to notify, see Settings):
-  - `从不` (never) — raises nothing at all.
-  - `仅在未聚焦时` (only when unfocused, **default**) — raises nothing while the DSH window is
-    in the foreground.
-  - `始终` (always) — also raises an in-app card (and the attention sound) while focused.
-  Desktop cards are always used only while the app is not focused.
 - Delivery:
   - **App not focused** → the client POSTs the notice to the Host, which renders it with a
     small persistent PowerShell WinForms overlay in the bottom-right corner of the primary
     monitor (always-on-top, click-through, never steals focus). Clicking a card brings the
     DSH window to the foreground. The overlay plays a real Windows system sound
     (`C:\Windows\Media\*.wav`) for each new notice.
-  - **App focused** → nothing by default; with `始终`, an in-app card stack is shown in the
-    bottom-right of the app window (same colors), with "打开会话" (open) and "关闭" (dismiss)
-    buttons. Completion cards auto-dismiss after 12 s; attention cards after 5 min.
+  - **App focused** → an in-app card stack is shown in the bottom-right of the app window
+    (same colors), with "打开会话" (open) and "关闭" (dismiss) buttons. Completion cards
+    auto-dismiss after 12 s; attention cards after 5 min.
 - Sounds are selected from the Windows system WAVs; no audio assets ship with the plugin.
   Completion sound defaults to **off** because DSH profiles may already have a completion
   chime (e.g. `dsh-whale-widget`); the attention sound (approval/question) defaults to
@@ -44,7 +39,7 @@ The plugin contributes one row to **Settings → General → 通知提醒**:
 | 桌面右下角卡片 (desktop card stack) | on |
 | 任务完成音 (completion sound) | 无 (none) |
 | 需要处理提示音 (attention sound) | notify |
-| 何时提醒 (when to notify) | 仅在未聚焦时 (only when unfocused) |
+| 仅窗口不在前台时响铃 (sound only when unfocused) | off |
 | 卡片配色 (card colors) | 背景 `#0D1117`，文字 `#FAB5EE`，次要文字 `#C79BC0`，完成 `#7EE787`，授权 `#FFA657`，回答 `#FAB5EE` |
 
 The **card colors** section has a color picker per role (background, text, secondary text,

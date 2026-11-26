@@ -78,15 +78,6 @@ window.__ModuleLoader__.load({
       critical: "sound.critical",
     };
 
-    // "何时提醒" 只在这一层判断：never 完全不打扰，unfocused 是默认值（窗口在前台就当你在看着），
-    // always 连前台也提醒（前台用应用内卡片，桌面卡片仍然只在未聚焦时出现）。
-    const NOTIFY_MODES = ["never", "unfocused", "always"];
-    const NOTIFY_MODE_LABELS = {
-      never: "mode.never",
-      unfocused: "mode.unfocused",
-      always: "mode.always",
-    };
-
     const zh = {
       "settings.title": "通知提醒",
       "settings.pluginTag": "跨工作区提醒插件",
@@ -98,16 +89,13 @@ window.__ModuleLoader__.load({
       "settings.soundOn": "系统提示音",
       "settings.soundOnHint": "使用 Windows 自带的提示音，无需额外音频文件。",
       "settings.desktopOn": "桌面卡片",
-      "settings.desktopOnHint": "DSH 窗口不在前台时，在 Windows 桌面右下角显示提醒卡片；窗口在前台时是否提醒由「何时提醒」决定。",
+      "settings.desktopOnHint": "DSH 窗口不在前台时，在 Windows 桌面右下角显示提醒卡片；窗口在前台时改为应用内卡片。",
       "settings.completeSound": "任务完成音",
       "settings.completeSoundHint": "默认关闭：DSH 自带的完成提示音可能已经在响，避免重复。",
       "settings.attentionSound": "需要处理提示音",
       "settings.attentionSoundHint": "授权、提问、计划确认等需要你操作时播放。",
-      "settings.notifyMode": "何时提醒",
-      "settings.notifyModeHint": "「仅在未聚焦时」是默认值：DSH 窗口在前台就不打扰你。",
-      "settings.mode.never": "从不",
-      "settings.mode.unfocused": "仅在未聚焦时",
-      "settings.mode.always": "始终",
+      "settings.onlyWhenUnfocused": "仅窗口不在前台时播放",
+      "settings.onlyWhenUnfocusedHint": "卡片提示始终显示。",
       "settings.testComplete": "试听完成音",
       "settings.testAttention": "试听提醒音",
       "settings.colors": "卡片配色",
@@ -154,16 +142,13 @@ window.__ModuleLoader__.load({
       "settings.soundOnHint": "Uses the Windows sound scheme; the bundle ships no audio files.",
       "settings.desktopOn": "Desktop cards",
       "settings.desktopOnHint":
-        "When the DSH window is not focused, show the card at the bottom-right of the Windows desktop; whether to notify while focused is up to “When to notify”.",
+        "When the DSH window is not focused, show the card at the bottom-right of the Windows desktop; when focused, use the in-app card.",
       "settings.completeSound": "Completion sound",
       "settings.completeSoundHint": "Off by default because the built-in DSH completion chime may already play.",
       "settings.attentionSound": "Needs-you sound",
       "settings.attentionSoundHint": "Plays when an approval, question, or plan review needs you.",
-      "settings.notifyMode": "When to notify",
-      "settings.notifyModeHint": "“Only when unfocused” is the default: stay quiet while the DSH window is in the foreground.",
-      "settings.mode.never": "Never",
-      "settings.mode.unfocused": "Only when unfocused",
-      "settings.mode.always": "Always",
+      "settings.onlyWhenUnfocused": "Only play while the window is not focused",
+      "settings.onlyWhenUnfocusedHint": "Cards are always shown.",
       "settings.testComplete": "Test completion sound",
       "settings.testAttention": "Test attention sound",
       "settings.colors": "Card colors",
@@ -261,18 +246,14 @@ window.__ModuleLoader__.load({
     const DEFAULT_SETTINGS = {
       soundOn: true,
       desktopOn: true,
-      notifyMode: "unfocused",
       completeSoundKey: "none",
       attentionSoundKey: "notify",
+      onlyWhenUnfocused: false,
       colors: { ...DEFAULT_COLORS },
     };
 
     function normalizeSoundKey(value, fallback) {
       return typeof value === "string" && SOUND_KEYS.includes(value) ? value : fallback;
-    }
-
-    function normalizeNotifyMode(value) {
-      return typeof value === "string" && NOTIFY_MODES.includes(value) ? value : DEFAULT_SETTINGS.notifyMode;
     }
 
     function normalizeColor(value, fallback) {
@@ -331,13 +312,10 @@ window.__ModuleLoader__.load({
             parsed.attentionSoundKey,
             parsed.attentionSound === false ? "none" : DEFAULT_SETTINGS.attentionSoundKey,
           ),
-          notifyMode: normalizeNotifyMode(
-            parsed.notifyMode !== undefined
-              ? parsed.notifyMode
-              : parsed.onlyWhenUnfocused === true
-                ? "unfocused"
-                : DEFAULT_SETTINGS.notifyMode,
-          ),
+          onlyWhenUnfocused:
+            typeof parsed.onlyWhenUnfocused === "boolean"
+              ? parsed.onlyWhenUnfocused
+              : DEFAULT_SETTINGS.onlyWhenUnfocused,
           colors: normalizeColors(parsed.colors),
         };
       } catch (error) {
@@ -639,8 +617,7 @@ window.__ModuleLoader__.load({
       function soundAllowed(kind) {
         const current = settings.getSnapshot();
         if (current.soundOn !== true) return null;
-        if (current.notifyMode === "never") return null;
-        if (current.notifyMode === "unfocused" && focused()) return null;
+        if (current.onlyWhenUnfocused === true && focused()) return null;
         const key = kind === "complete" ? current.completeSoundKey : current.attentionSoundKey;
         return key === "none" ? null : key;
       }
@@ -669,12 +646,9 @@ window.__ModuleLoader__.load({
       }
 
       function raise(key, type, kind, list, row, sessionId, detail) {
-        const current = settings.getSnapshot();
-        if (current.notifyMode === "never") return;
-        const appFocused = focused();
-        if (current.notifyMode === "unfocused" && appFocused) return;
         const soundKey = soundAllowed(kind);
-        const wantDesktopCard = current.desktopOn === true && !appFocused;
+        const current = settings.getSnapshot();
+        const wantDesktopCard = current.desktopOn === true && !focused();
         const title = titleOf(list, row, sessionId) || localized("session.untitled");
         const workspace = workspaceOf(list, row, sessionId) || "";
         const autoDismissMs = type === "complete" ? COMPLETE_DISMISS_MS : ATTENTION_DISMISS_MS;
@@ -731,6 +705,8 @@ window.__ModuleLoader__.load({
       function raiseCompletion(list, id, row) {
         if (row === undefined || row === null) return;
         if (row.blank === true) return;
+        const isMain = (row.retainedBy !== undefined && row.retainedBy !== null ? row.retainedBy.mainView : 0) > 0;
+        if (isMain && focused()) return;
         raise("complete:" + id, "complete", "complete", list, row, id, "");
       }
 
@@ -990,16 +966,6 @@ window.__ModuleLoader__.load({
           },
           SOUND_KEYS.map((soundKey) => h("option", { key: soundKey, value: soundKey }, t(SOUND_LABELS[soundKey]))),
         );
-      const notifyModeSelect = () =>
-        h(
-          "select",
-          {
-            className: "dan-select",
-            value: state.notifyMode,
-            onChange: (event) => update({ notifyMode: event.target.value }),
-          },
-          NOTIFY_MODES.map((mode) => h("option", { key: mode, value: mode }, t(NOTIFY_MODE_LABELS[mode]))),
-        );
       const preview = (kind) => {
         const soundKey = kind === "complete" ? state.completeSoundKey : state.attentionSoundKey;
         if (soundKey === "none") return;
@@ -1055,9 +1021,9 @@ window.__ModuleLoader__.load({
             control: checkbox("desktopOn"),
           }),
           h(SettingsGroupRow, {
-            label: t("settings.notifyMode"),
-            hint: t("settings.notifyModeHint"),
-            control: notifyModeSelect(),
+            label: t("settings.onlyWhenUnfocused"),
+            hint: t("settings.onlyWhenUnfocusedHint"),
+            control: checkbox("onlyWhenUnfocused"),
           }),
         ),
         h(
