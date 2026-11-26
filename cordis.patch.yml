@@ -1,0 +1,4 @@
+# Mount the attention-notify plugin into this profile's Host tree.
+- insert:
+    - id: attention-notify
+      name: '@local/dsh-attention-notify'

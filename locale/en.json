@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Attention Notifications",
+    "description": "Plays a Windows system sound and shows a card in the bottom-right corner of the desktop when a session finishes or needs your approval / answer / plan review, so background workspaces are never missed."
+  }
+}
