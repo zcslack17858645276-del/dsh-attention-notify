@@ -98,11 +98,25 @@ try {
   $probe.Dispose()
 } catch { $scale = 1.0 }
 
+function Convert-HexColor([string]$hex) {
+  if (-not $hex) { return $null }
+  $text = $hex.Trim()
+  if ($text -match '^#[0-9a-fA-F]{6}$') {
+    $r = [Convert]::ToInt32($text.Substring(1, 2), 16)
+    $g = [Convert]::ToInt32($text.Substring(3, 2), 16)
+    $b = [Convert]::ToInt32($text.Substring(5, 2), 16)
+    return [System.Drawing.Color]::FromArgb($r, $g, $b)
+  }
+  return $null
+}
+
 $bg        = [System.Drawing.Color]::FromArgb(13, 17, 23)     # #0D1117
+$txt       = [System.Drawing.Color]::FromArgb(250, 181, 238)  # #FAB5EE
 $pink      = [System.Drawing.Color]::FromArgb(250, 181, 238)  # #FAB5EE
 $secondary = [System.Drawing.Color]::FromArgb(199, 155, 192)  # #C79BC0
 $green     = [System.Drawing.Color]::FromArgb(126, 231, 135)  # #7EE787
 $orange    = [System.Drawing.Color]::FromArgb(255, 166, 87)   # #FFA657
+$themeSig  = '#0d1117#fab5ee#c79bc0#7ee787#ffa657#fab5ee'
 
 $fontTitle = New-Object System.Drawing.Font('Microsoft YaHei UI', [float](10.5 * $scale), [System.Drawing.FontStyle]::Bold)
 $fontBody  = New-Object System.Drawing.Font('Microsoft YaHei UI', [float](9.0 * $scale), [System.Drawing.FontStyle]::Regular)
@@ -213,6 +227,26 @@ while ($true) {
   if ($null -ne $state) {
     if ($state.shutdown -eq $true) { break }
 
+    if ($null -ne $state.theme) {
+      $rawTheme = $state.theme
+      $sig = '#' + [string]$rawTheme.bg + '#' + [string]$rawTheme.text + '#' + [string]$rawTheme.secondary + '#' + [string]$rawTheme.complete + '#' + [string]$rawTheme.attention + '#' + [string]$rawTheme.question
+      if ($sig -ne $themeSig) {
+        $themeSig = $sig
+        $parsed = Convert-HexColor ([string]$rawTheme.bg)
+        if ($null -ne $parsed) { $bg = $parsed }
+        $parsed = Convert-HexColor ([string]$rawTheme.text)
+        if ($null -ne $parsed) { $txt = $parsed }
+        $parsed = Convert-HexColor ([string]$rawTheme.secondary)
+        if ($null -ne $parsed) { $secondary = $parsed }
+        $parsed = Convert-HexColor ([string]$rawTheme.complete)
+        if ($null -ne $parsed) { $green = $parsed }
+        $parsed = Convert-HexColor ([string]$rawTheme.attention)
+        if ($null -ne $parsed) { $orange = $parsed }
+        $parsed = Convert-HexColor ([string]$rawTheme.question)
+        if ($null -ne $parsed) { $pink = $parsed }
+      }
+    }
+
     if ($null -ne $state.preview -and [int]$state.preview.seq -gt $lastPreviewSeq) {
       $lastPreviewSeq = [int]$state.preview.seq
       Play-Sound ([string]$state.preview.sound)
@@ -223,9 +257,9 @@ while ($true) {
 
     $parts = @()
     foreach ($c in $cards) {
-      $parts += ('' + $c.id + '|' + $c.kind + '|' + $c.title + '|' + $c.session + '|' + $c.meta)
+      $parts += ('' + $c.id + '|' + $c.kind + '|' + $c.title + '|' + $c.session + '|' + $c.workspace + '|' + $c.detail)
     }
-    $hash = $parts -join '~'
+    $hash = $themeSig + '|' + ($parts -join '~')
 
     if ($hash -ne $lastHash) {
       Clear-Cards
@@ -266,7 +300,7 @@ while ($true) {
 
           $lblTitle = New-Object System.Windows.Forms.Label
           $lblTitle.Text = [string]$card.title
-          $lblTitle.ForeColor = $pink
+          $lblTitle.ForeColor = $txt
           $lblTitle.Font = $fontTitle
           $lblTitle.AutoEllipsis = $true
           $lblTitle.Left = $left
@@ -277,7 +311,7 @@ while ($true) {
 
           $lblSession = New-Object System.Windows.Forms.Label
           $lblSession.Text = [string]$card.session
-          $lblSession.ForeColor = $pink
+          $lblSession.ForeColor = $txt
           $lblSession.Font = $fontBody
           $lblSession.AutoEllipsis = $true
           $lblSession.Left = $left
@@ -287,7 +321,7 @@ while ($true) {
           $panel.Controls.Add($lblSession)
 
           $lblMeta = New-Object System.Windows.Forms.Label
-          $meta = [string]$card.meta
+          $meta = [string]$card.workspace
           if ($card.detail) { $meta = $meta + ' - ' + [string]$card.detail }
           $lblMeta.Text = $meta
           $lblMeta.ForeColor = $secondary

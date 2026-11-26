@@ -31,10 +31,21 @@ window.__ModuleLoader__.load({
     const NOTIFY_ROUTE = "/attention-notify/notify";
     const DISMISS_ROUTE = "/attention-notify/dismiss";
     const PREVIEW_ROUTE = "/attention-notify/preview";
+    const THEME_ROUTE = "/attention-notify/theme";
     const MAX_NOTICES = 4;
     const COMPLETE_DISMISS_MS = 12000;
     const ATTENTION_DISMISS_MS = 300000;
     const SOUND_THROTTLE_MS = 350;
+
+    const DEFAULT_COLORS = {
+      bg: "#0d1117",
+      text: "#fab5ee",
+      secondary: "#c79bc0",
+      complete: "#7ee787",
+      attention: "#ffa657",
+      question: "#fab5ee",
+    };
+    const COLOR_KEYS = ["bg", "text", "secondary", "complete", "attention", "question"];
 
     const inject = ["sessions", "slots", "locale", "uiSession"];
 
@@ -83,6 +94,15 @@ window.__ModuleLoader__.load({
       "settings.onlyWhenUnfocusedHint": "卡片提示始终显示。",
       "settings.testComplete": "试听完成音",
       "settings.testAttention": "试听提醒音",
+      "settings.colors": "卡片配色",
+      "settings.colorsHint": "修改后立即生效，并同步到应用内卡片与 Windows 桌面卡片。",
+      "settings.color.bg": "背景",
+      "settings.color.text": "文字",
+      "settings.color.secondary": "次要文字",
+      "settings.color.complete": "完成强调色",
+      "settings.color.attention": "需要授权强调色",
+      "settings.color.question": "需要回答强调色",
+      "settings.colorsReset": "恢复默认配色",
       "notice.complete": "任务完成",
       "notice.approval": "需要授权",
       "notice.question": "需要你回答",
@@ -123,6 +143,15 @@ window.__ModuleLoader__.load({
       "settings.onlyWhenUnfocusedHint": "Cards are always shown.",
       "settings.testComplete": "Test completion sound",
       "settings.testAttention": "Test attention sound",
+      "settings.colors": "Card colors",
+      "settings.colorsHint": "Changes apply immediately to both the in-app cards and the Windows desktop cards.",
+      "settings.color.bg": "Background",
+      "settings.color.text": "Text",
+      "settings.color.secondary": "Secondary text",
+      "settings.color.complete": "Completion accent",
+      "settings.color.attention": "Approval accent",
+      "settings.color.question": "Answer accent",
+      "settings.colorsReset": "Restore default colors",
       "notice.complete": "Task finished",
       "notice.approval": "Approval needed",
       "notice.question": "Answer needed",
@@ -148,28 +177,29 @@ window.__ModuleLoader__.load({
 
     const CSS = `
 .dan-stack{position:fixed;right:16px;bottom:16px;z-index:2147483000;display:flex;flex-direction:column-reverse;gap:8px;width:min(380px,calc(100vw - 32px));pointer-events:none}
-.dan-card{pointer-events:auto;display:flex;gap:10px;padding:12px 14px;border-radius:10px;background:#0D1117;border:1px solid rgba(250,181,238,.28);box-shadow:0 10px 30px rgba(0,0,0,.45);color:#FAB5EE;animation:dan-in .18s ease-out}
+.dan-card{pointer-events:auto;display:flex;gap:10px;padding:12px 14px;border-radius:10px;background:var(--dan-bg,#0D1117);border:1px solid var(--dan-border,rgba(250,181,238,.28));box-shadow:0 10px 30px rgba(0,0,0,.45);color:var(--dan-text,#FAB5EE);animation:dan-in .18s ease-out}
 @keyframes dan-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-.dan-card[data-kind="complete"]{border-left:3px solid #7EE787}
-.dan-card[data-kind="approval"],.dan-card[data-kind="planReview"]{border-left:3px solid #FFA657}
-.dan-card[data-kind="question"],.dan-card[data-kind="generic"]{border-left:3px solid #FAB5EE}
-.dan-card-icon{flex:0 0 auto;width:18px;height:18px;margin-top:1px;color:#FAB5EE}
-.dan-card[data-kind="complete"] .dan-card-icon{color:#7EE787}
-.dan-card[data-kind="approval"] .dan-card-icon,.dan-card[data-kind="planReview"] .dan-card-icon{color:#FFA657}
+.dan-card[data-kind="complete"]{border-left:3px solid var(--dan-complete,#7EE787)}
+.dan-card[data-kind="approval"],.dan-card[data-kind="planReview"]{border-left:3px solid var(--dan-attention,#FFA657)}
+.dan-card[data-kind="question"],.dan-card[data-kind="generic"]{border-left:3px solid var(--dan-question,#FAB5EE)}
+.dan-card-icon{flex:0 0 auto;width:18px;height:18px;margin-top:1px;color:var(--dan-text,#FAB5EE)}
+.dan-card[data-kind="complete"] .dan-card-icon{color:var(--dan-complete,#7EE787)}
+.dan-card[data-kind="approval"] .dan-card-icon,.dan-card[data-kind="planReview"] .dan-card-icon{color:var(--dan-attention,#FFA657)}
 .dan-card-body{min-width:0;flex:1 1 auto;display:flex;flex-direction:column;gap:2px}
-.dan-card-title{font-size:13px;font-weight:600;line-height:18px;color:#FAB5EE}
-.dan-card-sub{font-size:13px;line-height:18px;color:#FAB5EE;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dan-card-meta{font-size:12px;line-height:16px;color:#C79BC0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dan-card-detail{font-size:12px;line-height:16px;color:#C79BC0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dan-card-title{font-size:13px;font-weight:600;line-height:18px;color:var(--dan-text,#FAB5EE)}
+.dan-card-sub{font-size:13px;line-height:18px;color:var(--dan-text,#FAB5EE);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dan-card-meta{font-size:12px;line-height:16px;color:var(--dan-secondary,#C79BC0);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dan-card-detail{font-size:12px;line-height:16px;color:var(--dan-secondary,#C79BC0);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dan-card-actions{display:flex;gap:8px;margin-top:8px}
-.dan-btn{pointer-events:auto;appearance:none;border:1px solid rgba(250,181,238,.35);background:transparent;color:#FAB5EE;border-radius:6px;padding:4px 10px;font-size:12px;line-height:16px;cursor:pointer}
-.dan-btn:hover{background:rgba(250,181,238,.12)}
-.dan-btn-primary{border-color:transparent;background:#FAB5EE;color:#0D1117}
-.dan-btn-primary:hover{background:#FAB5EE;opacity:.9}
+.dan-btn{pointer-events:auto;appearance:none;border:1px solid var(--dan-border-strong,rgba(250,181,238,.35));background:transparent;color:var(--dan-text,#FAB5EE);border-radius:6px;padding:4px 10px;font-size:12px;line-height:16px;cursor:pointer}
+.dan-btn:hover{background:var(--dan-hover,rgba(250,181,238,.12))}
+.dan-btn-primary{border-color:transparent;background:var(--dan-text,#FAB5EE);color:var(--dan-bg,#0D1117)}
+.dan-btn-primary:hover{background:var(--dan-text,#FAB5EE);opacity:.9}
 .dan-settings{display:flex;flex-direction:column;gap:12px;padding:16px 0}
 .dan-settings-head{display:flex;flex-direction:column;gap:4px}
 .dan-settings-title{font-size:14px;line-height:22px;font-weight:600;color:var(--dsw-alias-label-primary)}
 .dan-settings-desc{font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary)}
+.dan-settings-subhead{font-size:13px;line-height:20px;font-weight:600;color:var(--dsw-alias-label-primary);margin-top:4px}
 .dan-row{display:flex;align-items:center;justify-content:space-between;gap:16px}
 .dan-row-text{display:flex;flex-direction:column;gap:2px;min-width:0}
 .dan-row-label{font-size:14px;line-height:22px;color:var(--dsw-alias-label-primary)}
@@ -177,6 +207,9 @@ window.__ModuleLoader__.load({
 .dan-control{display:flex;align-items:center;gap:8px;flex:0 0 auto}
 .dan-select{max-width:200px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);border-radius:6px;padding:4px 8px;font-size:13px}
 .dan-check{width:16px;height:16px;accent-color:var(--dsw-alias-brand-primary)}
+.dan-colors{display:flex;align-items:center;gap:8px}
+.dan-color{width:44px;height:28px;padding:0;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;background:transparent;cursor:pointer}
+.dan-color-hex{font-size:12px;line-height:16px;color:var(--dsw-alias-label-secondary);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .dan-test{display:flex;gap:8px;flex-wrap:wrap}
 `;
 
@@ -204,10 +237,50 @@ window.__ModuleLoader__.load({
       completeSoundKey: "none",
       attentionSoundKey: "notify",
       onlyWhenUnfocused: false,
+      colors: { ...DEFAULT_COLORS },
     };
 
     function normalizeSoundKey(value, fallback) {
       return typeof value === "string" && SOUND_KEYS.includes(value) ? value : fallback;
+    }
+
+    function normalizeColor(value, fallback) {
+      if (typeof value !== "string") return fallback;
+      let text = value.trim();
+      if (/^#[0-9a-fA-F]{3}$/.test(text)) {
+        text = "#" + text[1] + text[1] + text[2] + text[2] + text[3] + text[3];
+      }
+      return /^#[0-9a-fA-F]{6}$/.test(text) ? text.toLowerCase() : fallback;
+    }
+
+    function normalizeColors(value) {
+      const source = value !== null && typeof value === "object" ? value : {};
+      const colors = {};
+      for (const key of COLOR_KEYS) colors[key] = normalizeColor(source[key], DEFAULT_COLORS[key]);
+      return colors;
+    }
+
+    function rgba(hex, alpha) {
+      const color = normalizeColor(hex, "#fab5ee");
+      const r = parseInt(color.slice(1, 3), 16);
+      const g = parseInt(color.slice(3, 5), 16);
+      const b = parseInt(color.slice(5, 7), 16);
+      return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
+    }
+
+    function themeStyle(value) {
+      const colors = normalizeColors(value);
+      return {
+        "--dan-bg": colors.bg,
+        "--dan-text": colors.text,
+        "--dan-secondary": colors.secondary,
+        "--dan-complete": colors.complete,
+        "--dan-attention": colors.attention,
+        "--dan-question": colors.question,
+        "--dan-border": rgba(colors.text, 0.28),
+        "--dan-border-strong": rgba(colors.text, 0.38),
+        "--dan-hover": rgba(colors.text, 0.12),
+      };
     }
 
     function readStoredSettings() {
@@ -215,7 +288,7 @@ window.__ModuleLoader__.load({
         const raw = window.localStorage.getItem(STORAGE_KEY);
         const legacy = window.localStorage.getItem("dsh.attention-notify.settings.v1");
         const parsed = raw !== null ? JSON.parse(raw) : legacy !== null ? JSON.parse(legacy) : null;
-        if (parsed === null || typeof parsed !== "object") return { ...DEFAULT_SETTINGS };
+        if (parsed === null || typeof parsed !== "object") return { ...DEFAULT_SETTINGS, colors: { ...DEFAULT_COLORS } };
         return {
           soundOn: typeof parsed.soundOn === "boolean" ? parsed.soundOn : DEFAULT_SETTINGS.soundOn,
           desktopOn: typeof parsed.desktopOn === "boolean" ? parsed.desktopOn : DEFAULT_SETTINGS.desktopOn,
@@ -231,9 +304,10 @@ window.__ModuleLoader__.load({
             typeof parsed.onlyWhenUnfocused === "boolean"
               ? parsed.onlyWhenUnfocused
               : DEFAULT_SETTINGS.onlyWhenUnfocused,
+          colors: normalizeColors(parsed.colors),
         };
       } catch (error) {
-        return { ...DEFAULT_SETTINGS };
+        return { ...DEFAULT_SETTINGS, colors: { ...DEFAULT_COLORS } };
       }
     }
 
@@ -372,6 +446,9 @@ window.__ModuleLoader__.load({
         },
         async preview(sound) {
           return (await post(PREVIEW_ROUTE, { sound }, 900)) !== null;
+        },
+        async setTheme(colors) {
+          return (await post(THEME_ROUTE, { colors: normalizeColors(colors) }, 900)) !== null;
         },
       };
     }
@@ -579,6 +656,7 @@ window.__ModuleLoader__.load({
               sound: soundKey === null ? "none" : soundKey,
               ttlMs: autoDismissMs,
               card: true,
+              theme: current.colors,
             })
             .then((ok) => {
               if (!ok) {
@@ -595,7 +673,16 @@ window.__ModuleLoader__.load({
             .catch(() => {});
         } else if (soundKey !== null) {
           desktop
-            .notify({ id: key, kind: type, session: title, workspace, detail: detail || "", sound: soundKey, card: false })
+            .notify({
+              id: key,
+              kind: type,
+              session: title,
+              workspace,
+              detail: detail || "",
+              sound: soundKey,
+              card: false,
+              theme: current.colors,
+            })
             .then((ok) => {
               if (!ok) audio.play(kind);
             })
@@ -803,13 +890,21 @@ window.__ModuleLoader__.load({
     }
 
     function Overlay(props) {
-      const { t, store, openSession: openSessionButton, dismiss } = props;
+      const { t, store, settings, openSession: openSessionButton, dismiss } = props;
       const [items, setItems] = React.useState(() => store.getSnapshot());
+      const [colors, setColors] = React.useState(() => settings.getSnapshot().colors);
       React.useEffect(() => store.subscribe(() => setItems(store.getSnapshot())), [store]);
+      React.useEffect(() => settings.subscribe(() => setColors(settings.getSnapshot().colors)), [settings]);
       if (items === undefined || items === null || items.length === 0) return null;
       return h(
         "div",
-        { className: "dan-stack", role: "region", "aria-live": "polite", "aria-label": t("region.label") },
+        {
+          className: "dan-stack",
+          style: themeStyle(colors),
+          role: "region",
+          "aria-live": "polite",
+          "aria-label": t("region.label"),
+        },
         items.map((notice) =>
           h(NoticeCard, {
             key: notice.id,
@@ -869,6 +964,22 @@ window.__ModuleLoader__.load({
           })
           .catch(() => audio.play(kind));
       };
+      const updateColor = (key, value) => {
+        update({ colors: { ...state.colors, [key]: normalizeColor(value, DEFAULT_COLORS[key]) } });
+      };
+      const colorControl = (key) =>
+        h(
+          "div",
+          { className: "dan-colors" },
+          h("span", { className: "dan-color-hex" }, state.colors[key]),
+          h("input", {
+            className: "dan-color",
+            type: "color",
+            value: state.colors[key],
+            "aria-label": t("settings.color." + key),
+            onChange: (event) => updateColor(key, event.target.value),
+          }),
+        );
       return h(
         "div",
         { className: "dan-settings" },
@@ -905,6 +1016,23 @@ window.__ModuleLoader__.load({
           h("button", { type: "button", className: "dan-btn", onClick: () => preview("complete") }, t("settings.testComplete")),
           h("button", { type: "button", className: "dan-btn", onClick: () => preview("attention") }, t("settings.testAttention")),
         ),
+        h("div", { className: "dan-settings-subhead" }, t("settings.colors")),
+        COLOR_KEYS.map((key) =>
+          h(SettingsGroupRow, { key, label: t("settings.color." + key), control: colorControl(key) }),
+        ),
+        h(
+          "div",
+          { className: "dan-test" },
+          h(
+            "button",
+            {
+              type: "button",
+              className: "dan-btn",
+              onClick: () => update({ colors: { ...DEFAULT_COLORS } }),
+            },
+            t("settings.colorsReset"),
+          ),
+        ),
       );
     }
 
@@ -916,6 +1044,14 @@ window.__ModuleLoader__.load({
       const audio = createAudio();
       const desktop = createDesktop();
       const notices = createNoticeStore();
+
+      ctx.effect(() => {
+        const pushTheme = () => {
+          desktop.setTheme(settings.getSnapshot().colors).catch(() => {});
+        };
+        pushTheme();
+        return settings.subscribe(pushTheme);
+      }, "attention-notify: theme sync");
 
       ctx.effect(() => {
         const unlock = () => audio.unlock();
@@ -936,6 +1072,7 @@ window.__ModuleLoader__.load({
             locale: NS,
             inject: () => ({
               store: notices,
+              settings,
               openSession: (sessionId) => openSession(ctx, sessionId),
               dismiss: (id) => notices.dismiss(id),
             }),

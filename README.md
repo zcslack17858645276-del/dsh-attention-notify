@@ -40,6 +40,14 @@ The plugin contributes one row to **Settings → General → 通知提醒**:
 | 任务完成音 (completion sound) | 无 (none) |
 | 需要处理提示音 (attention sound) | notify |
 | 仅窗口不在前台时响铃 (sound only when unfocused) | off |
+| 卡片配色 (card colors) | 背景 `#0D1117`，文字 `#FAB5EE`，次要文字 `#C79BC0`，完成 `#7EE787`，授权 `#FFA657`，回答 `#FAB5EE` |
+
+The **card colors** section has a color picker per role (background, text, secondary text,
+completion accent, approval accent, answer accent) plus "restore default colors". Changes
+apply immediately: the in-app card stack is re-themed through CSS variables, and the choice is
+POSTed to the Host (`POST /attention-notify/theme`) and included in every notice payload, so
+the Windows desktop overlay re-renders existing and new cards with the same colors (the
+overlay script compares the theme signature and rebuilds the card stack when it changes).
 
 Settings are persisted in `localStorage` under `dsh.attention-notify.settings.v2`
 (the old `v1` values are migrated).
@@ -55,9 +63,10 @@ Requirements: Windows (PowerShell 5.1 with WinForms is used for the desktop over
 
 ## Files
 
-- `index.js` — Host half: `webServer` routes + state file + PowerShell overlay lifecycle.
+- `index.js` — Host half: `webServer` routes (`/notify`, `/dismiss`, `/preview`, `/theme`,
+  `/clear`, `/health`), state file, theme relay, PowerShell overlay lifecycle.
 - `overlay/attention-overlay.ps1` — ASCII-only WinForms desktop overlay (polling, rendering,
-  system sound playback, click-to-focus, parent-process watchdog).
+  dynamic theme colors, system sound playback, click-to-focus, parent-process watchdog).
 - `client.js` — module-loader client plugin (status watcher, in-app cards, sound selection,
   settings row).
 - `cordis.patch.yml` — mounts the Host half.

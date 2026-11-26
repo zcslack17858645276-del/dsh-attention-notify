@@ -8,9 +8,10 @@
  * system sound for new cards.
  *
  * Routes (all same-origin, localhost only):
- *   POST /attention-notify/notify   { id, kind, title, session, workspace, detail, sound, ttlMs, card }
+ *   POST /attention-notify/notify   { id, kind, title, session, workspace, detail, sound, ttlMs, card, theme }
  *   POST /attention-notify/dismiss  { id }
  *   POST /attention-notify/preview  { sound }
+ *   POST /attention-notify/theme    { colors: { bg, text, secondary, complete, attention, question } }
  *   POST /attention-notify/clear    {}
  *   GET  /attention-notify/health
  *
@@ -39,6 +40,15 @@ const TTL_BY_KIND = {
   planReview: 300000,
   generic: 300000,
 };
+const THEME_KEYS = ["bg", "text", "secondary", "complete", "attention", "question"];
+const DEFAULT_THEME = Object.freeze({
+  bg: "#0d1117",
+  text: "#fab5ee",
+  secondary: "#c79bc0",
+  complete: "#7ee787",
+  attention: "#ffa657",
+  question: "#fab5ee",
+});
 const SOUND_KEYS = new Set([
   "none",
   "notify",
@@ -73,6 +83,22 @@ function clampTtl(value, kind) {
   const number = Number(value);
   if (!Number.isFinite(number) || number <= 0) return fallback;
   return Math.min(600000, Math.max(1500, Math.round(number)));
+}
+
+function normalizeHexColor(value, fallback) {
+  if (typeof value !== "string") return fallback;
+  let text = value.trim();
+  if (/^#[0-9a-f]{3}$/i.test(text)) {
+    text = "#" + text[1] + text[1] + text[2] + text[2] + text[3] + text[3];
+  }
+  return /^#[0-9a-f]{6}$/i.test(text) ? text.toLowerCase() : fallback;
+}
+
+function normalizeTheme(value) {
+  const source = value !== null && typeof value === "object" ? value : {};
+  const theme = {};
+  for (const key of THEME_KEYS) theme[key] = normalizeHexColor(source[key], DEFAULT_THEME[key]);
+  return theme;
 }
 
 function json(res, status, body) {
@@ -120,6 +146,7 @@ class DesktopBridge {
     this.sweepTimer = null;
     this.killTimer = null;
     this.disposed = false;
+    this.theme = { ...DEFAULT_THEME };
   }
 
   start() {
@@ -139,6 +166,7 @@ class DesktopBridge {
       version: 1,
       updatedAt: Date.now(),
       shutdown: this.shuttingDown === true,
+      theme: { ...this.theme },
       preview: { seq: this.previewSeq, sound: this.previewSound },
       cards: this.cards.map((card) => ({
         id: card.id,
@@ -151,6 +179,20 @@ class DesktopBridge {
         at: card.at,
       })),
     };
+  }
+
+  setTheme(value) {
+    const theme = normalizeTheme(value);
+    let changed = false;
+    for (const key of THEME_KEYS) {
+      if (theme[key] !== this.theme[key]) {
+        changed = true;
+        this.theme[key] = theme[key];
+      }
+    }
+    if (!changed) return false;
+    this.writeState();
+    return true;
   }
 
   writeState() {
@@ -358,6 +400,7 @@ export default {
         if (req.method !== "POST") return json(res, 405, { ok: false, error: "method" });
         const body = await readBody(req);
         if (body === null) return json(res, 400, { ok: false, error: "body" });
+        if (body.theme !== undefined) bridge.setTheme(body.theme);
         if (body.card === false) {
           const sound = typeof body.sound === "string" && SOUND_KEYS.has(body.sound) ? body.sound : "none";
           const overlay = sound !== "none" ? bridge.preview(sound) : bridge.ensureOverlay();
@@ -366,6 +409,15 @@ export default {
         const card = normalizeCard(body);
         const overlay = bridge.upsert(card);
         return json(res, 200, { ok: true, card: true, id: card.id, overlay });
+      });
+
+      register("/attention-notify/theme", async (req, res) => {
+        if (req.method !== "POST") return json(res, 405, { ok: false, error: "method" });
+        const body = await readBody(req);
+        if (body === null) return json(res, 400, { ok: false, error: "body" });
+        const changed = bridge.setTheme(body.colors !== undefined ? body.colors : body);
+        const overlay = bridge.ensureOverlay();
+        return json(res, 200, { ok: true, changed, overlay, theme: bridge.theme });
       });
 
       register("/attention-notify/dismiss", async (req, res) => {
@@ -398,6 +450,7 @@ export default {
           cards: bridge.cards.length,
           overlay: bridge.child !== null,
           soundKeys: Array.from(SOUND_KEYS),
+          theme: bridge.theme,
           stateFile: STATE_FILE,
           platform: process.platform,
         });
